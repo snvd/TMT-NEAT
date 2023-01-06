@@ -1,17 +1,24 @@
 #Pipeline for SLN, zero imputation, and IRS on TMT data followed by DE analysis using PoissonSeq
-#Last updated: Dec 16, 2020
+#Last updated: Jan 06, 2023 by CMS
 
-TMT_pseq_pipeline = function(workdir, datafile, metadatafile, exp, SLN, PTM, DE, stat, qval,compsfile){
+TMT_pseq_pipeline = function(workdir, datafile, metadatafile, exp, REGEX, SLN, PTM, DE, stat, qval,compsfile){
 
-#make sure the exp name is syntatically valid
-exp = make.names(exp)
-
+#make sure the exp name is syntactically valid if not using REGEXP
+if(REGEX == "no") {
+  exp = make.names(exp)
+}
+print(paste0("Working directory: ", workdir))
 setwd(workdir)
 message("Loading data files...")
 
 #load the data file
 #make the peptide ids the row names
-data = read.csv(datafile,row.names="id",stringsAsFactors=FALSE)
+data = read.delim(datafile,row.names = "id", stringsAsFactors = FALSE)
+#data = read.delim("../../collaborations/DineshKumar/Shabek/TurboID_MAX2/DE_analysis/proteinGroups.txt",
+#                  sep = "\t",row.names = "id", stringsAsFactors = FALSE)
+#old read.csv line:
+#data = read.csv(datafile,row.names="id",stringsAsFactors=FALSE)
+
 colnames(data)[1]="Proteins"
 
 #read in the metadata
@@ -213,12 +220,14 @@ if (PTM == "P"){
   rawintensities = intensities[!grepl('corrected',colnames(intensities))]
   rawintensities = rawintensities[!grepl('count',colnames(rawintensities))]
   intensitiesK = rawintensities[,grepl(exp,colnames(rawintensities))]
-  #remove blanks
   if(exp=="None"){
     intensitiesK=rawintensities
   }else{
     intensitiesK = rawintensities[,grepl(exp,colnames(rawintensities))] 
   }
+  #remove blanks
+  metadata3 = metadataorg$name
+  intensitiesK = intensitiesK[,!grepl('blank',metadata3,ignore.case=TRUE)]
   #intensitiesK = intensitiesK[,metadata$sample]
   #splitnames = strsplit(colnames(intensitiesK),'NLB')
   #splitnames = unlist(splitnames)

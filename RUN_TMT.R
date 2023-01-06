@@ -8,21 +8,47 @@ if (!require('pacman', character.only=T, quietly=T)) {
   library('pacman',character.only=T)
 }
 
+p_load(devtools)
 p_load(openxlsx)
 p_load(plyr)
 p_load(dplyr)
 p_load(shiny)
-p_load(ggbiplot)
-p_load(EnhancedVolcano)
 p_load(shinyscreenshot)
+
+#install Bioconductor if needed
+if (!require("BiocManager", quietly = TRUE)) {
+      install.packages("BiocManager")
+BiocManager::install()
+}
+
+#install EnhancedVolcano from Bioconductor if needed
+if (!require('EnhancedVolcano',quietly=T)) {
+  BiocManager::install("EnhancedVolcano")
+  library('EnhancedVolcano')
+}else{
+  library('EnhancedVolcano')
+}
 
 #install PoissonSeq from Github if needed
 if (!require('PoissonSeq',quietly=T)) {
-  p_load(devtools)
-  install_github("cran/PoissonSeq")
+  devtools::install_github("cran/PoissonSeq")
   library('PoissonSeq')
 }else{
   library('PoissonSeq')
+}
+#install ggbiplot from Github if needed
+if (!require('ggbiplot',quietly=T)) {
+  devtools::install_github("vqv/ggbiplot")
+  library('ggbiplot')
+}else{
+  library('ggbiplot')
+}
+#install shinyDirectrInput from Github if needed
+if (!require('shinyDirectoryInput',quietly=T)) {
+  devtools::install_github('wleepang/shiny-directory-input')
+  library('shinyDirectoryInput')
+}else{
+  library('shinyDirectoryInput')
 }
 
 source("TMT_pseq_pipeline.R")

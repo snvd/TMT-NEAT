@@ -6,11 +6,13 @@ ui <- fluidPage(
   sidebarLayout(
     sidebarPanel(h3("Files"),
       # Copy the line below to make a file upload manager
-      textInput("text", label = "Working directory", value = "c:/path/to/main/dir"),
-      fileInput("file", label = "Metadata file"),
+      directoryInput(inputId = "directory", label = "Choose output directory"),
+#      textInput("text", label = "Working directory", value = "c:/path/to/main/dir"),
+      fileInput("file", label = "Metadata file", accept = "*.txt"),
       fileInput("file2", label = "MaxQuant output file"),
       fileInput("file3", label = "Comparisons file"),
       textInput("text2", label = "Experiment name", value = "None"),
+      radioButtons("radioExp", label = "Use REGEXP on experiment name?", choices = c("Yes","No"),selected = "No"),
       radioButtons("radio", label = "PTM?", choices = c("None","P","U")),
       radioButtons("radio3", label = "Sample Loading Normalization?", choices = c("Yes","No")),
       radioButtons("radio4", label= "Differential Expression?", choices = c("Yes","No")),
@@ -37,15 +39,15 @@ ui <- fluidPage(
                 reference names must contain the text \"ref\" (capitalization does not matter)."),
               p("An example metadata file is included in the TEST data."),
               strong("MaxQuant output file:"),
-              p("Output file from MaxQuant that has been converted to comma separated (.csv) format using
-                Notepad, Microsoft Excel, etc. An example output file is included in the TEST data."),
+              p("Output file from MaxQuant. Now TMT-NEAT allows direct input of the MQ output file (no conversion to csv necessary)."),
               strong('Comparisons file'),
               p('List of pairwise comparisons you would like to make. The names of your samples MUST match what
                 is provided in the metadata file, and must be named A_vs_B. Please see the TEST files for an example. If not performing differential expression, you may leave this blank.'),
               strong("Experiment name"),
               p("Input what you called your experiment when loading into MaxQuant. If you cannot remember,
                 you can check the summary file. This is useful if you only want to analyze specific samples in your
-                output file. If you leave this as is, it will automatically select all samples for analysis."),
+                output file. If you leave this as is, it will automatically select all samples for analysis. You can
+                also choose to use a regular expression (REGEX) to match different experiment names at the same time"),
               strong("Sample Loading Normalization"),
               p("Option to remove sample loading normalization. This is useful for experiments where enrichment is
                 expected and could be altered by sample loading normalization, such as kinase assays, co-IPs, TurboID, etc."),
@@ -81,14 +83,29 @@ ui <- fluidPage(
 )
 
 # Define server logic ----
-server <- function(input, output) {
+server <- function(input, output, session) {
+  path <- NULL
   options(shiny.maxRequestSize=100*1024^2) 
+#interactive folder selection box
+observeEvent(input$directory, ignoreNULL = TRUE,
+             handlerExpr = {
+               if (input$directory > 0) {
+                 # condition prevents handler execution on initial app launch
+
+                 # launch the directory selection dialog with initial path read from the widget
+                 path <<- choose.dir(caption = "Choose output directory")
+               }
+             })
+  
   observe({
+    print(path)
     if (input$action > 0){
-      TMT_pseq_pipeline(workdir=input$text,datafile=input$file2$datapath,metadatafile=input$file$datapath,
-                        exp=input$text2,SLN=input$radio3,PTM=input$radio,DE=input$radio4,stat=input$radio2,qval=input$num,compsfile=input$file3$datapath)
+      path <- choose.dir(default = path, caption = "Confirm output directory")
+      TMT_pseq_pipeline(workdir=path,datafile=input$file2$datapath,metadatafile=input$file$datapath,
+                        exp=input$text2,REGEX=input$radioExp,SLN=input$radio3,PTM=input$radio,DE=input$radio4,stat=input$radio2,qval=input$num,compsfile=input$file3$datapath)
     }
   })
+
   #Save a screenshot of the window when the user clicks the button
   observeEvent(input$screenshot, {
     screenshot()

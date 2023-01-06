@@ -1,4 +1,0 @@
-#  Ignore html vignette when calculating repository language
-# ============
-
-*.html   linguist-vendored
