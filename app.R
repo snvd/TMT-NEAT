@@ -8,7 +8,7 @@ ui <- fluidPage(
       # Copy the line below to make a file upload manager
       directoryInput(inputId = "directory", label = "Choose output directory"),
 #      textInput("text", label = "Working directory", value = "c:/path/to/main/dir"),
-      fileInput("file", label = "Metadata file", accept = "*.txt"),
+      fileInput("file", label = "Metadata file", accept = c(".tsv",".txt")),
       fileInput("file2", label = "MaxQuant output file"),
       fileInput("file3", label = "Comparisons file"),
       textInput("text2", label = "Experiment name", value = "None"),
@@ -28,8 +28,8 @@ ui <- fluidPage(
               p('TMT-NEAT currently works with protein abundance as well as PTM data (currently phosphorylation
                 and ubiquitination are supported, but we hope to add more in the future)'),
               h3("Input files"),
-              strong("Working directory"),
-              p("Name of your working directory which MUST contain your metadata and MaxQuant output files."),
+              strong("Output directory"),
+              p("Select the folder where you want the results to be saved."),
               strong("Metadata file:"),
               p("text (.txt) file that contains the following information in tab-delimited format:"),
               p("Column 1 should be named \"sample\" and contain the lane # for each sample (1,2,3, etc)"),
@@ -65,7 +65,7 @@ ui <- fluidPage(
                 starting with a q-value of 0.1 (or p-value of 0.05) and then adjusting as you see fit. p- or q-value histograms are included in the
                 output files to help you choose a more suitable cutoff if desired."),
               h3("Output files"),
-              strong("All output files are saved to your working directory."),br(),br(),
+              strong("All output files are saved to your output directory."),br(),br(),
               p("Various comma separated (.csv) files that contain your expression data before and after each step of
                 normalization. All differential expression analysis is performed on the values in the file \"IRS_Normalized_values.csv\""),
               p("Various Quality Control (QC) plots including a boxplot colored by run, hierarchical clustering, and
@@ -100,7 +100,7 @@ observeEvent(input$directory, ignoreNULL = TRUE,
   observe({
     print(path)
     if (input$action > 0){
-      path <- choose.dir(default = path, caption = "Confirm output directory")
+#      path <- choose.dir(default = path, caption = "Confirm output directory")
       TMT_pseq_pipeline(workdir=path,datafile=input$file2$datapath,metadatafile=input$file$datapath,
                         exp=input$text2,REGEX=input$radioExp,SLN=input$radio3,PTM=input$radio,DE=input$radio4,stat=input$radio2,qval=input$num,compsfile=input$file3$datapath)
     }

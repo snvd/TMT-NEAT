@@ -660,18 +660,18 @@ if(DE=="Yes"){
       plot(e)
       dev.off()
     }
-    #make qvalue histogram
-    if (stat=="q"){
+    #make pvalue and qvalue histogram
+#    if (stat=="q"){
       png(filename=paste(paste(comps[i,1],"_qval_hist.png",sep="")),width=2000,height=2000,res=300)
-      h <- hist(pseq$fdr,breaks=100)
-      plot(h)
+      h <- hist(x=pseq$fdr,breaks=100)
+      plot(h,main="q-value distribution histogram", xlab="q-value")
       dev.off()
-    }else{
+#    }else{
       png(filename=paste(paste(comps[i,1],"_pval_hist.png",sep="")),width=2000,height=2000,res=300)
-      h <- hist(pseq$pval,breaks=100)
-      plot(h)
+      h <- hist(x=pseq$pval,breaks=100)
+      plot(h,main="p-value distribution histogram",xlab="p-value")
       dev.off()
-    }
+#    }
     #get differentially expressed genes and save
     if (stat=="q"){
       mypros = pseq[pseq$fdr<qval,c(1:5,7)]
@@ -702,5 +702,5 @@ if(DE=="Yes"){
   write.csv(myresults,'Normalized_values.csv')
 }
 
-message("Finished!")
+message("Finished! Please close TMT-NEAT window")
 }
