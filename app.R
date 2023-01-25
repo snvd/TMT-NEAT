@@ -8,7 +8,7 @@ ui <- fluidPage(
       # Copy the line below to make a file upload manager
       directoryInput(inputId = "directory", label = "Choose output directory"),
 #      textInput("text", label = "Working directory", value = "c:/path/to/main/dir"),
-      fileInput("file", label = "Metadata file", accept = c(".tsv",".txt")),
+      fileInput(inputId = "file", label = "Metadata file", accept = c(".tsv",".txt")),
       fileInput("file2", label = "MaxQuant output file"),
       fileInput("file3", label = "Comparisons file"),
       textInput("text2", label = "Experiment name", value = "None"),
@@ -42,7 +42,9 @@ ui <- fluidPage(
               p("Output file from MaxQuant. Now TMT-NEAT allows direct input of the MQ output file (no conversion to csv necessary)."),
               strong('Comparisons file'),
               p('List of pairwise comparisons you would like to make. The names of your samples MUST match what
-                is provided in the metadata file, and must be named A_vs_B. Please see the TEST files for an example. If not performing differential expression, you may leave this blank.'),
+                is provided in the metadata file. Provide an Excel file with control sample name in first column,
+                and second column will have the test sample name (i.e., treated or mutated sample name). Please see the TEST files for an example. 
+                You may leave this balnk if want to test all samples versus each other or if not performing differential expression.'),
               strong("Experiment name"),
               p("Input what you called your experiment when loading into MaxQuant. If you cannot remember,
                 you can check the summary file. This is useful if you only want to analyze specific samples in your
@@ -94,15 +96,21 @@ observeEvent(input$directory, ignoreNULL = TRUE,
 
                  # launch the directory selection dialog with initial path read from the widget
                  path <<- choose.dir(caption = "Choose output directory")
+                 updateDirectoryInput(session, 'directory', value = path)
                }
              })
   
   observe({
-    print(path)
     if (input$action > 0){
-#      path <- choose.dir(default = path, caption = "Confirm output directory")
-      TMT_pseq_pipeline(workdir=path,datafile=input$file2$datapath,metadatafile=input$file$datapath,
-                        exp=input$text2,REGEX=input$radioExp,SLN=input$radio3,PTM=input$radio,DE=input$radio4,stat=input$radio2,qval=input$num,compsfile=input$file3$datapath)
+      if (!exists("path", mode = "character")) {
+        path <- choose.dir(caption = "Choose output directory") 
+        TMT_pseq_pipeline(workdir=path,datafile=input$file2$datapath,metadatafile=input$file$datapath,
+                          exp=input$text2,REGEX=input$radioExp,SLN=input$radio3,PTM=input$radio,DE=input$radio4,stat=input$radio2,qval=input$num,compsfile=input$file3$datapath)
+      } else {
+        TMT_pseq_pipeline(workdir=path,datafile=input$file2$datapath,metadatafile=input$file$datapath,
+                          exp=input$text2,REGEX=input$radioExp,SLN=input$radio3,PTM=input$radio,DE=input$radio4,stat=input$radio2,qval=input$num,compsfile=input$file3$datapath)
+      }
+
     }
   })
 
