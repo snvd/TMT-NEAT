@@ -1,35 +1,33 @@
 #Pipeline for SLN, zero imputation, and IRS on TMT data followed by DE analysis using PoissonSeq
 #Last updated: Jan 06, 2023 by CMS
 
-TMT_pseq_pipeline = function(workdir, datafile, metadatafile, exp, REGEX, SLN, PTM, DE, stat, qval,compsfile){
+TMT_pseq_pipeline <- function(workdir, datafile, metadatafile, exp, REGEX, SLN, PTM, DE, stat, qval,compsfile){
 
 #make sure the exp name is syntactically valid if not using REGEXP
 if(REGEX == "no") {
-  exp = make.names(exp)
+  exp <- make.names(exp)
 }
+
 print(paste0("Working directory: ", workdir))
 setwd(workdir)
 message("Loading data files...")
 
 #load the data file
 #make the peptide ids the row names
-data = read.delim(datafile,row.names = "id", stringsAsFactors = FALSE)
-#data = read.delim("../../collaborations/DineshKumar/Shabek/TurboID_MAX2/DE_analysis/proteinGroups.txt",
-#                  sep = "\t",row.names = "id", stringsAsFactors = FALSE)
-#old read.csv line:
-#data = read.csv(datafile,row.names="id",stringsAsFactors=FALSE)
+data <- read.delim(datafile,row.names = "id", stringsAsFactors = FALSE)
 
-colnames(data)[1]="Proteins"
+colnames(data)[1] <- "Proteins"
 
 #read in the metadata
-metadataorg = read.table(metadatafile,sep="\t",header=TRUE,stringsAsFactors=FALSE)
+metadataorg <- read.table(metadatafile,sep="\t",header=TRUE,stringsAsFactors=FALSE)
+
 #remove blanks
-noblanks = metadataorg[!grepl('blank',metadataorg$name,ignore.case=TRUE),]
-metadata=noblanks
-plex = length(metadata$sample[metadata$run==1]) #number of TMT channels used
-runs = max(metadata$run) #number of LC-MS/MS runs for this experiment
-reps = metadata$rep #number of replicates per condition
-numrefs = sum(grepl("Ref",metadata$name,ignore.case=TRUE))/runs
+noblanks <- metadataorg[!grepl('blank',metadataorg$name,ignore.case=TRUE),]
+metadata <- noblanks
+plex <- length(metadata$sample[metadata$run==1]) #number of TMT channels used
+runs <- max(metadata$run) #number of LC-MS/MS runs for this experiment
+reps <- metadata$rep #number of replicates per condition
+numrefs <- sum(grepl("Ref",metadata$name,ignore.case=TRUE))/runs
 
 message("Beginning data processing...")
 if (PTM == "P"){
@@ -124,21 +122,21 @@ if (PTM == "P"){
     }
   }
 }else if(PTM=="U"){
-  #get rid of peptides with no phospho sites
-  data = data[!(data$Number.of.GlyGly..K.==""),]
+  #get rid of peptides with no ubiquitin sites
+  data <- data[!(data$Number.of.GlyGly..K.==""),]
   #get the raw intensities for differential abundance
-  intensities = data[,grepl('Reporter.intensity',colnames(data))]
-  rawintensities = intensities[!grepl('corrected',colnames(intensities))]
-  rawintensities = rawintensities[!grepl('count',colnames(rawintensities))]
-  #rawintensities = intensities[grepl('corrected',colnames(intensities))]
+  intensities <- data[,grepl('Reporter.intensity',colnames(data))]
+  rawintensities <- intensities[!grepl('corrected',colnames(intensities))]
+  rawintensities <- rawintensities[!grepl('count',colnames(rawintensities))]
+  #rawintensities <- intensities[grepl('corrected',colnames(intensities))]
   if(exp=="None"){
-    intensitiesK=rawintensities
+    intensitiesK <- rawintensities
   }else{
-    intensitiesK = rawintensities[,grepl(exp,colnames(rawintensities))] 
+    intensitiesK <- rawintensities[,grepl(exp,colnames(rawintensities))] 
   }
   #remove blanks
-  metadata3 = rep(metadataorg$name,each=3)
-  intensitiesK = intensitiesK[,!grepl('blank',metadata3,ignore.case=TRUE)]
+  metadata3 <- rep(metadataorg$name,each=3)
+  intensitiesK <- intensitiesK[,!grepl('blank',metadata3,ignore.case=TRUE)]
   #splitnames = strsplit(colnames(intensitiesK),'NLB')
   #splitnames = unlist(splitnames)
   #splitnames2 = strsplit(splitnames[seq(2,924,by=2)],"___")
@@ -148,10 +146,10 @@ if (PTM == "P"){
   message("Separating multiplicities...")
   #first we need to make a new table where we 1) take only the columns we need and 2) separate peptides by multiplicity
   #this assumes columns are always named the same thing
-  currentrow=1
+  currentrow <- 1
   for (i in 1:length(row.names(data))){
-    myprotein = data[i,]
-    #check number of phospho sites
+    myprotein <- data[i,]
+    #check number of Ubiquitin sites
     #if there is a semicolon, that means we have multiple sites and need to split into multiple rows
     if (length(grep(";",myprotein$Number.of.GlyGly..K.))>0){
       #get the info for this protein
@@ -163,7 +161,7 @@ if (PTM == "P"){
                          "Localization.prob",
                          "GlyGly.Site","Sequence.window",'Modification.window',
                          'Peptide.window.coverage','GlyGly.site.probs','original.id')
-      #split the phospho sites by semincolon
+      #split the Ubiquitin sites by semincolon
       sites = strsplit(myprotein$Number.of.GlyGly..K.,";")
       mysites = sites[[1]]
       for (j in 1:length(mysites)){
@@ -187,22 +185,22 @@ if (PTM == "P"){
       }
     }else{
       #get the info for this protein
-      mydata = data.frame(myprotein$Proteins,myprotein$Positions.within.proteins,myprotein$Protein,myprotein$Fasta.headers,
+      mydata <- data.frame(myprotein$Proteins,myprotein$Positions.within.proteins,myprotein$Protein,myprotein$Fasta.headers,
                           myprotein$Localization.prob,myprotein$Number.of.GlyGly..K.,
                           myprotein$Sequence.window, myprotein$Modification.window, myprotein$Peptide.window.coverage,
                           myprotein$GlyGly..K..Probabilities, row.names(myprotein), stringsAsFactors=FALSE)
-      colnames(mydata)=c("Proteins","Positions.within.proteins","Protein","Fasta.headers",
+      colnames(mydata) <- c("Proteins","Positions.within.proteins","Protein","Fasta.headers",
                          "Localization.prob",
                          "GlyGly.Site","Sequence.window",'Modification.window',
                          'Peptide.window.coverage','GlyGly.site.probs','original.id')
       #get the correct intensity values for this protein
       if (myprotein$Number.of.GlyGly..K.>3){
-        currentsite = 3
+        currentsite <- 3
       } else{
-        currentsite=myprotein$Number.of.GlyGly..K.
+        currentsite <- as.numeric(myprotein$Number.of.GlyGly..K.)
       }
-      myintensities = intensitiesK[i,grepl(paste('_',currentsite,sep=""),colnames(intensitiesK))]
-      colnames(myintensities)=paste(rep("R",length(reps)),reps,sep="_")
+      myintensities <- intensitiesK[i,grepl(paste('_',currentsite,sep=""),colnames(intensitiesK))]
+      colnames(myintensities) <- paste(rep("R",length(reps)),reps,sep="_")
       if (i==1){
         newdata = data.frame(mydata,myintensities,stringsAsFactors=FALSE)
         row.names(newdata)[currentrow]=paste(row.names(newdata)[currentrow],".",myprotein$Number.of.GlyGly..K.,sep="")
@@ -246,24 +244,26 @@ if (PTM == "P"){
 }
 
 #replace column names with sample names from the metadata
-colnames(newdata)[(dim(mydata)[2]+1):dim(newdata)[2]]=paste(metadata$name,metadata$rep,sep="_")
+colnames(newdata)[(dim(mydata)[2]+1):dim(newdata)[2]] <- paste0(metadata$name,"_",metadata$rep)
 
 #get rid of all contaminants
 if (PTM=="P" | PTM=="U"){
-  newdata = newdata[!grepl("CON",newdata$Protein,ignore.case=TRUE),]
-  newdata = newdata[!grepl("REV",newdata$Protein, ignore.case=TRUE),]
+  newdata <-  newdata[!grepl("CON",newdata$Protein,ignore.case=TRUE),]
+  newdata <-  newdata[!grepl("REV",newdata$Protein, ignore.case=TRUE),]
 }else{
-  newdata = newdata[!grepl("CON",newdata$Majority.protein.IDs,ignore.case=TRUE),]
-  newdata = newdata[!grepl("REV",newdata$Majority.protein.IDs, ignore.case=TRUE),]
+  newdata <-  newdata[!grepl("CON",newdata$Majority.protein.IDs,ignore.case=TRUE),]
+  newdata <-  newdata[!grepl("REV",newdata$Majority.protein.IDs, ignore.case=TRUE),]
 }
 
 #finally add log2 transformed values because apparently people like those
-intensities = newdata[,(dim(mydata)[2]+1):dim(newdata)[2]]
-newdatalog = data.frame(newdata,log2(intensities+1),stringsAsFactors=FALSE)
-colnames(newdatalog)=c(colnames(newdata),paste("log2(",metadata$name,"_",metadata$rep,")",sep=""))
+intensities <- newdata[,(dim(mydata)[2]+1):dim(newdata)[2]]
+newdatalog <- data.frame(newdata,log2(intensities+1),stringsAsFactors=FALSE)
+colnames(newdatalog) <- c(colnames(newdata),paste("log2(",metadata$name,"_",metadata$rep,")",sep=""))
 
 #save table
-write.csv(newdatalog,'prenormalized_data.csv')
+newdatalog %>%
+  rownames_to_column(var = "UID") %>%
+  write.csv(file = 'prenormalized_data.csv', row.names = FALSE)
 
 message("Removing proteins in less than 50% of the runs...")
 #now we can normalize the intensity data and do DE analysis with PoissonSeq
@@ -278,21 +278,28 @@ if (numrefs==0){
 if (numrefs>1){
   for (i in 1:runs){
       if (i==1){
-        refsums = data.frame(rowSums(refs[,(numrefs*(i-1)+1):(numrefs*i)]))
+        refsums <- data.frame(rowSums(as.data.frame(refs[,(numrefs*(i-1)+1):(numrefs*i)],
+                                                    row.names = row.names(refs))))
       }else{
-        refsums = data.frame(refsums,rowSums(refs[,(numrefs*(i-1)+1):(numrefs*i)]))
+        refsums <- data.frame(refsums,rowSums(as.data.frame(refs[,(numrefs*(i-1)+1):(numrefs*i)],
+                                                            row.names = row.names(refs))))
       }
     }
     #count how many times the protein is zero in the reference lane
-    zerosums = rowSums(refsums[,]==0)
     #remove the proteins that are zero in >=50% of the runs
     nozeros = newdata[zerosums<=(dim(refsums)[2]/2),]
-} else{
+    #Will use only sites detected in both runs
+    nozeros <- newdata[zerosums==0,]
+} else if (numrefs==1){
   #remove the proteins that are zero in all samples
-    nozeros = newdata[refs>0,]
-}
+  nozeros <- newdata[rowSums(refs==0)==0,]
+  } else {
+  nozeros <- newdata[refs<0,]
+    }
 #save
-write.csv(nozeros,'prenormalized_data_in_at_least_half_of_runs.csv')
+nozeros %>%
+  rownames_to_column(var = "UID") %>%
+  write.csv(file = 'prenormalized_data_in_at_least_half_of_runs.csv', row.names = FALSE)
 finalintensities = nozeros[,(dim(mydata)[2]+1):dim(newdata)[2]]
 
 #plot boxplot before normalization
@@ -327,138 +334,25 @@ if(SLN=="Yes"){
     }
     write.csv(normintensities,"sample_loading_normalization.csv")
   }else{
-    myints = finalintensities
+    myints <- finalintensities
     #column normalize
-    sums = colSums(myints)
-    meansums = mean(sums)
-    normfactor = sums/meansums
-    myintensitiesnorm = myints
+    sums <- colSums(myints)
+    meansums <- mean(sums)
+    normfactor <- sums/meansums
+    myintensitiesnorm <- myints
     for (j in 1:dim(myints)[2]){
-      myintensitiesnorm[,j] = ceiling(myints[,j]/normfactor[j])
+      myintensitiesnorm[,j] <-  ceiling(myints[,j]/normfactor[j])
     }
-    normintensities=myintensitiesnorm
-    write.csv(normintensities,"sample_loading_normalization.csv")
+    normintensities <- myintensitiesnorm
+    myintensitiesnorm %>%
+      rownames_to_column(var = "UID") %>%
+      write.csv(file = "sample_loading_normalization.csv", row.names = FALSE)
   }
 }else{
-  normintensities = finalintensities
+  normintensities <- finalintensities
 }
 
-#zero imputation
-#first we need to get the sd of the technical replicates so we can simulate missing tech reps
-#first we need to look at the SD of the log2 transformed tech reps to see tech rep error
-# samples = plex-numrefs
-# if (reps>1){
-#   message("Imputing missing values...")
-#   if (numrefs==0){
-#     refs = rowMeans(normintensities)
-#   }else{
-#     refs = normintensities[,grepl('Ref',colnames(normintensities),ignore.case=TRUE)]
-#   }
-#   for (i in 1:reps){
-#     if (i==1){
-#       refsums = data.frame(rowSums(refs[,(numrefs*(i-1)+1):(numrefs*i)]))
-#     }else{
-#       refsums = data.frame(refsums,rowSums(refs[,(numrefs*(i-1)+1):(numrefs*i)]))
-#     }
-#   }
-#   zerosums = rowSums(refsums[,]==0)
-#   refszero = as.matrix(log2(refs[zerosums==0,]))
-#   for (i in 1:reps){
-#     if (i==1){
-#       refstech = data.frame(apply(refszero[,(numrefs*(i-1)+1):(numrefs*i)],1,sd))
-#       refscomb = data.frame(rowMeans(refszero[,(numrefs*(i-1)+1):(numrefs*i)]))
-#     }else{
-#       refstech = data.frame(refstech,apply(refszero[,(numrefs*(i-1)+1):(numrefs*i)],1,sd))
-#       refscomb = data.frame(refscomb,rowMeans(refszero[,(numrefs*(i-1)+1):(numrefs*i)]))
-#     }
-#   }
-#   refstechnorm = stack(refstech/refscomb)
-#   myvar = mean(na.omit(refstechnorm[,1]))
-#   
-#   #now we can impute references
-#   logrefs = log2(refs+1)
-#   logrefsimp = logrefs
-#   impvals = t(rep(1,2))
-#   set.seed(1)
-#   for (i in 1:dim(logrefs)[1]){
-#     #check for zero values
-#     if (sum(logrefs[i,]==0)==numrefs){
-#       mylogrefs = logrefs[i,]
-#       mylogrefsnz = mylogrefs[mylogrefs>0]
-#       #impute first ref
-#       impvals[,1] = rnorm(1,mean(mylogrefsnz),sd(mylogrefsnz))
-#       #impute follow technical reps
-#       for (j in 2:numrefs){
-#         impvals[,j] = impvals[,1]+myvar*impvals[,1]
-#       }
-#       mylogrefs[mylogrefs==0] = impvals
-#       logrefsimp[i,] = mylogrefs
-#     }
-#   }
-#   allrefsimp = floor(2^logrefsimp)
-#   normintensitiesimp = cbind(normintensities[,!grepl('Ref',colnames(normintensities),ignore.case=TRUE)],allrefsimp)
-#   
-#   #now we need to impute the non reference values
-#   #to do this we will again log2 transform everything and then use the results of the other 2 replicates to approximate the biological effect
-#   normintensitiesimplog = log2(normintensitiesimp+1)
-#   normintensitiesimpall = normintensitiesimplog
-#   for (i in 1:dim(normintensitiesimp)[1]){
-#     mylogexpr = normintensitiesimplog[i,]
-#     if(sum(mylogexpr==0)>0){
-#       #first get correct reference
-#       missingrep = mylogexpr[,mylogexpr==0]
-#       notmissing = mylogexpr[,mylogexpr!=0]
-#       #if we have missing values within a run, get rid of this protein
-#       if (length(missingrep)!=samples){
-#         normintensitiesimpall[i,]=NA
-#       }else{
-#         missingrepind = colnames(missingrep)
-#         missingrepnum = strsplit(missingrepind[1],"_")
-#         missingrepnum = missingrepnum[[1]][2]
-#         myref = mylogexpr[,grepl("Ref",colnames(mylogexpr),ignore.case=TRUE)]
-#         #now we need to approximate the biological effect for each sample
-#         #for this we will compare the FC of each sample to the reference
-#         for (j in 1:reps){
-#           if (j==1){
-#             avgrefs = data.frame(rowMeans(myref[,(numrefs*(j-1)+1):(numrefs*j)]))
-#           }else{
-#             avgrefs = data.frame(avgrefs,rowMeans(myref[,(numrefs*(j-1)+1):(numrefs*j)]))
-#           }
-#         }
-#         colnames(avgrefs)=c("ref1","ref2","ref3")
-#         notmissingrefs = avgrefs[,!grepl(missingrepnum,colnames(avgrefs))]
-#         missingref = avgrefs[,grepl(missingrepnum,colnames(avgrefs))]
-#         #first 8 are divided by first ref, and so on
-#         numnotmissing = (length(notmissing)-numrefs*reps)/samples
-#         for (j in 1:numnotmissing){
-#           if (j==1){
-#             notmissingFC = data.frame(notmissing[,(samples*(j-1)+1):(samples*j)]/notmissingrefs[[j]])
-#           }else{
-#             notmissingFC = data.frame(notmissingFC, notmissing[,(samples*(j-1)+1):(samples*j)]/notmissingrefs[[j]])
-#           }
-#         }
-#         #get mean and SD for each
-#         #then approximate missing values by drawing from a distribution and multiplying by the reference
-#         for (j in 1:samples){
-#           mysamples = notmissingFC[,grep(metadata$name[j],colnames(notmissingFC))]
-#           mymean = apply(mysamples,1,mean)
-#           mysd = apply(mysamples,1,sd)
-#           missingrep[,j] = rnorm(1,mymean,mysd)*missingref
-#         }
-#         #save
-#         mylogexpr[,mylogexpr==0]=missingrep
-#         normintensitiesimpall[i,]=mylogexpr
-#       }
-#     }
-#   }
-#   normintensitiesimpall = na.omit(normintensitiesimpall) #get rid of proteins that had missing vals within a run
-#   normintensitiesimpall = 2^normintensitiesimpall #undo log transform
-#   write.csv(normintensitiesimpall,'missing_value_imputation.csv')
-# }
-# else{
-#   normintensitiesimpall=normintensities
-# }
-normintensitiesimpall=normintensities
+normintensitiesimpall <- normintensities
 
 #perform IRS
 if (runs>1){
@@ -540,7 +434,7 @@ if (runs>1){
   metadata %>%
     filter(!grepl(pattern = "Ref", x = .[]$name), .preserve = TRUE) -> metadata
 }else{
-  finalimpintensitiesIRS=normintensitiesimpall
+  finalimpintensitiesIRS <- normintensitiesimpall
 }
 
 #QC plots
@@ -633,7 +527,7 @@ if(DE=="Yes"){
     pseq %>%
       select(2,4,5) %>%
       rename(UID = gname) %>%
-      inner_join(mydata, by = c("UID" = "id")) %>%
+      inner_join(mydata%>%rownames_to_column(var="UID"), by = "UID") %>%
       inner_join(pdata%>%mutate(UID = rownames(pdata)), by = "UID") %>%
       mutate(log2FC = log2(rowMeans(across(starts_with(comps[i,2])))/rowMeans(across(starts_with(comps[i,1])))),
              GeneID = gsub(pattern = ";(.+)", replacement = "", x = .[]$Proteins, perl = T), .after = fdr) -> myresults
@@ -658,46 +552,46 @@ if(DE=="Yes"){
                    rowNames=FALSE,withFilter=FALSE,
                    bandedRows=FALSE,bandedCols=FALSE)
     #make volcano plot
-    signum = sum(pseq$pval<qval)
-    if (stat=="q"){
-      png(filename=paste0(comps[i,2],"_vs_",comps[i,1],"_volcano_plot_",qval,".png"),width=2500,height=2000,res=300)
-      e <- EnhancedVolcano(toptable = myresults,
-                           lab = myresults$UID,
-                           x = 'log2FC',
-                           y = 'fdr',
-                           ylim=c(0,3),
-                           xlim=c(-3,3),
-                           pointSize=1,
-                           labSize=0,
-                           FCcutoff=log2(1.1),
-                           pCutoff=qval,
-                           title=paste0(comps[i,2]," / ",comps[i,1]," (",sum(pseq$fdr<qval)," DE elements)"),
-                           col=c('grey30','grey60','royalblue','red2'),
-                           legendLabels=c('FC<1.1, q>0.1','FC>1.1, q>0.1','FC<1.1, q<0.1','FC>1.1, q<0.1'),
-                           legendLabSize=10,
-                           ylab = bquote(~-Log[10]~italic(q-value)))
-      plot(e)
-      dev.off() 
-    }else{
-      png(filename=paste0(comps[i,2],"_vs_",comps[i,1],"_volcano_plot_",qval,".png"),width=2500,height=2000,res=300)
-      e <- EnhancedVolcano(toptable = myresults,
-                           lab = 'UID',
-                           x = 'log2FC',
-                           y = 'pval',
-                           ylim=c(0,3),
-                           xlim=c(-3,3),
-                           pointSize=1,
-                           labSize=0,
-                           FCcutoff=log2(1.1),
-                           pCutoff=qval,
-                           title=paste0(comps[i,2]," / ",comps[i,1]," (",sum(pseq$pval<qval)," DE elements)"),
-                           col=c('grey30','grey60','royalblue','red2'),
-                           legendLabels=c('FC<1.1, p>0.05','FC>1.1, p>0.05','FC<1.1, p<0.05','FC>1.1, p<0.05'),
-                           legendLabSize=10,
-                           ylab = bquote(~-Log[10]~italic(p-value)))
-      plot(e)
-      dev.off()
-    }
+    # signum = sum(pseq$pval<qval)
+    # if (stat=="q"){
+    #   png(filename=paste0(comps[i,2],"_vs_",comps[i,1],"_volcano_plot_",qval,".png"),width=2500,height=2000,res=300)
+    #   e <- EnhancedVolcano(toptable = myresults,
+    #                        lab = myresults$UID,
+    #                        x = 'log2FC',
+    #                        y = 'fdr',
+    #                        ylim=c(0,3),
+    #                        xlim=c(-3,3),
+    #                        pointSize=1,
+    #                        labSize=0,
+    #                        FCcutoff=log2(1.1),
+    #                        pCutoff=qval,
+    #                        title=paste0(comps[i,2]," / ",comps[i,1]," (",sum(pseq$fdr<qval)," DE elements)"),
+    #                        col=c('grey30','grey60','royalblue','red2'),
+    #                        legendLabels=c('FC<1.1, q>0.1','FC>1.1, q>0.1','FC<1.1, q<0.1','FC>1.1, q<0.1'),
+    #                        legendLabSize=10,
+    #                        ylab = bquote(~-Log[10]~italic(q-value)))
+    #   plot(e)
+    #   dev.off() 
+    # }else{
+    #   png(filename=paste0(comps[i,2],"_vs_",comps[i,1],"_volcano_plot_",qval,".png"),width=2500,height=2000,res=300)
+    #   e <- EnhancedVolcano(toptable = myresults,
+    #                        lab = 'UID',
+    #                        x = 'log2FC',
+    #                        y = 'pval',
+    #                        ylim=c(0,3),
+    #                        xlim=c(-3,3),
+    #                        pointSize=1,
+    #                        labSize=0,
+    #                        FCcutoff=log2(1.1),
+    #                        pCutoff=qval,
+    #                        title=paste0(comps[i,2]," / ",comps[i,1]," (",sum(pseq$pval<qval)," DE elements)"),
+    #                        col=c('grey30','grey60','royalblue','red2'),
+    #                        legendLabels=c('FC<1.1, p>0.05','FC>1.1, p>0.05','FC<1.1, p<0.05','FC>1.1, p<0.05'),
+    #                        legendLabSize=10,
+    #                        ylab = bquote(~-Log[10]~italic(p-value)))
+    #   plot(e)
+    #   dev.off()
+    # }
     #make pvalue and qvalue histogram
 #    if (stat=="q"){
       png(filename=paste0(comps[i,2],"_vs_",comps[i,1],"_qval_hist.png"),width=2000,height=2000,res=300)
