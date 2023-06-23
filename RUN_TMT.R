@@ -8,6 +8,7 @@ if (!require('pacman', character.only=T, quietly=T)) {
   library('pacman',character.only=T)
 }
 
+p_load(tibble)
 p_load(devtools)
 p_load(openxlsx)
 p_load(plyr)

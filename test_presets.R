@@ -1,13 +1,13 @@
 #pre-set arguments for testing TMT-pipeline script
-workdir <- "./test"
-datafile <- "proteinGroups.txt"
+workdir <- "C:/Users/chrisfm/Box/Walley Lab Data/Montes/FLG22_paper/NewSearchResults/globalPhospho/phosphoDE_quad0vsWT0"
+datafile <- "../Phospho (STY)Sites_globalPhospho.txt"
 metadatafile <- "sampledata.txt"
-exp <- "global"
+exp <- "Phospho"
 REGEX <- "no"
 SLN <- "yes"
-PTM <- "none"
+PTM <- "P"
 DE <- "yes"
 stat <- "q"
 qval <- 0.1
 #compsfile <- "comps.xlsx"
-compsfile <- ""
+compsfile <- "../../comps.xlsx"

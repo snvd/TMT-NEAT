@@ -492,12 +492,12 @@ if(DE=="Yes"){
   } else {
     print("Comparing sample pairs depicted in 'comps.xlsx' file")
     #read in list of comparisons
-    comps = read.xlsx(compsfile)
+    comps <- read.xlsx(compsfile)
   }
 
   #perform PoissonSeq
   message("Differential expression analysis...")
-  pseqdata = finalimpintensitiesIRS
+  pseqdata <- finalimpintensitiesIRS
   newwb <- createWorkbook()
   newwb2 <- createWorkbook()
   for (i in 1:dim(comps)[1]){
@@ -527,7 +527,7 @@ if(DE=="Yes"){
     pseq %>%
       select(2,4,5) %>%
       rename(UID = gname) %>%
-      inner_join(mydata%>%rownames_to_column(var="UID"), by = "UID") %>%
+      inner_join(nozeros%>%rownames_to_column(var="UID"), by = "UID") %>%
       inner_join(pdata%>%mutate(UID = rownames(pdata)), by = "UID") %>%
       mutate(log2FC = log2(rowMeans(across(starts_with(comps[i,2])))/rowMeans(across(starts_with(comps[i,1])))),
              GeneID = gsub(pattern = ";(.+)", replacement = "", x = .[]$Proteins, perl = T), .after = fdr) -> myresults
