@@ -294,7 +294,7 @@ if (numrefs>1){
   #remove the proteins that are zero in all samples
   nozeros <- newdata[rowSums(refs==0)==0,]
   } else {
-  nozeros <- newdata[refs<0,]
+  nozeros <- newdata[refs!=0,]
     }
 #save
 nozeros %>%
