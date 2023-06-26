@@ -503,17 +503,17 @@ if(DE=="Yes"){
   for (i in 1:dim(comps)[1]){
     #get the intensities for this comparison
 #    sepcomps = strsplit(comps[i,1],"_vs_")
-    pseqdata %>%
-      select(matches(comps[i,1]),matches(comps[i,2])) %>%
-      na.omit -> pdata
+    pseqdata |>
+      select(matches(comps[i,1]),matches(comps[i,2])) |>
+      na.omit() -> pdata
 #    intensities1 = pseqdata[,grepl(comps[i,1],colnames(pseqdata))]
 #    intensities2 = pseqdata[,grepl(comps[i,2],colnames(pseqdata))]
     #intensities1 = na.omit(intensities1)
     #intensities2 = na.omit(intensities2)
 
     #make indicator variable y
-    y <- c(rep(1,ncol(pdata%>%select(matches(comps[i,1])))),
-             rep(2,ncol(pdata%>%select(matches(comps[i,2])))))
+    y <- c(rep(1,ncol(pdata|>select(matches(comps[i,1])))),
+             rep(2,ncol(pdata|>select(matches(comps[i,2])))))
     
     #perform PSeq
 #    pdata = data.frame(intensities1,intensities2)
@@ -522,13 +522,16 @@ if(DE=="Yes"){
     #get the actual fc
 #    pseq = pseq[order(pseq$gname),]
 #    pdata = pdata[order(row.names(pdata)),]
-
+    Sys.setenv(`_R_USE_PIPEBIND_` = TRUE)
     # Let's create results table. Here, fold-change is calculated from previously normalized intensities.
-    pseq %>%
-      select(2,4,5) %>%
-      rename(UID = gname) %>%
-      inner_join(nozeros%>%rownames_to_column(var="UID"), by = "UID") %>%
-      inner_join(pdata%>%mutate(UID = rownames(pdata)), by = "UID") %>%
+    pseq |>
+      select(2,4,5) |>
+      rename(UID = gname) |>
+      inner_join(nozeros |>
+                   select(Proteins:original.id) |>
+                   rownames_to_column(var="UID"), by = "UID") |>
+      inner_join(pdata |>
+                   mutate(UID = rownames(pdata)), by = "UID") %>%
       mutate(log2FC = log2(rowMeans(across(starts_with(comps[i,2])))/rowMeans(across(starts_with(comps[i,1])))),
              GeneID = gsub(pattern = ";(.+)", replacement = "", x = .[]$Proteins, perl = T), .after = fdr) -> myresults
       

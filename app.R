@@ -7,9 +7,8 @@ ui <- fluidPage(
     sidebarPanel(h3("Files"),
       # Copy the line below to make a file upload manager
       directoryInput(inputId = "directory", label = "Choose output directory"),
-#      textInput("text", label = "Working directory", value = "c:/path/to/main/dir"),
-      fileInput(inputId = "file", label = "Metadata file", accept = c(".tsv",".txt")),
       fileInput("file2", label = "MaxQuant output file"),
+      fileInput(inputId = "file", label = "Metadata file", accept = c(".tsv",".txt")),
       fileInput("file3", label = "Comparisons file"),
       textInput("text2", label = "Experiment name", value = "None"),
       radioButtons("radioExp", label = "Use REGEXP on experiment name?", choices = c("Yes","No"),selected = "No"),
@@ -30,6 +29,8 @@ ui <- fluidPage(
               h3("Input files"),
               strong("Output directory"),
               p("Select the folder where you want the results to be saved."),
+              strong("MaxQuant output file:"),
+              p("Output file from MaxQuant. Now TMT-NEAT allows direct input of the MQ output file (no conversion to csv necessary)."),
               strong("Metadata file:"),
               p("text (.txt) file that contains the following information in tab-delimited format:"),
               p("Column 1 should be named \"sample\" and contain the lane # for each sample (1,2,3, etc)"),
@@ -38,8 +39,6 @@ ui <- fluidPage(
               p("Column 4 should be called \"name\" and contain the names of your samples (text). NOTE that your
                 reference names must contain the text \"ref\" (capitalization does not matter)."),
               p("An example metadata file is included in the TEST data."),
-              strong("MaxQuant output file:"),
-              p("Output file from MaxQuant. Now TMT-NEAT allows direct input of the MQ output file (no conversion to csv necessary)."),
               strong('Comparisons file'),
               p('List of pairwise comparisons you would like to make. The names of your samples MUST match what
                 is provided in the metadata file. Provide an Excel file with control sample name in first column,
