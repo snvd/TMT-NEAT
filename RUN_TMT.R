@@ -8,6 +8,7 @@ if (!require('pacman', character.only=T, quietly=T)) {
   library('pacman',character.only=T)
 }
 
+p_load(ggplot2)
 p_load(tibble)
 p_load(devtools)
 p_load(openxlsx)
@@ -19,12 +20,12 @@ p_load(shinyscreenshot)
 #install Bioconductor if needed
 if (!require("BiocManager", quietly = TRUE)) {
       install.packages("BiocManager")
-BiocManager::install()
+BiocManager::install(update = TRUE, ask = FALSE)
 }
 
 #install EnhancedVolcano from Bioconductor if needed
 if (!require('EnhancedVolcano',quietly=T)) {
-  BiocManager::install("EnhancedVolcano")
+  BiocManager::install("EnhancedVolcano", update = FALSE)
   library('EnhancedVolcano')
 }else{
   library('EnhancedVolcano')
@@ -32,21 +33,21 @@ if (!require('EnhancedVolcano',quietly=T)) {
 
 #install PoissonSeq from Github if needed
 if (!require('PoissonSeq',quietly=T)) {
-  devtools::install_github("cran/PoissonSeq")
+  devtools::install_github("cran/PoissonSeq", upgrade = "never")
   library('PoissonSeq')
 }else{
   library('PoissonSeq')
 }
 #install ggbiplot from Github if needed
 if (!require('ggbiplot',quietly=T)) {
-  devtools::install_github("vqv/ggbiplot")
+  devtools::install_github("vqv/ggbiplot", upgrade = "never")
   library('ggbiplot')
 }else{
   library('ggbiplot')
 }
 #install shinyDirectrInput from Github if needed
 if (!require('shinyDirectoryInput',quietly=T)) {
-  devtools::install_github('wleepang/shiny-directory-input')
+  devtools::install_github('wleepang/shiny-directory-input',upgrade = "never")
   library('shinyDirectoryInput')
 }else{
   library('shinyDirectoryInput')

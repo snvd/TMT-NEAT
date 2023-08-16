@@ -37,7 +37,7 @@ if (PTM == "P"){
   intensities = data[,grepl('Reporter.intensity',colnames(data))]
   rawintensities = intensities[!grepl('corrected',colnames(intensities))]
   rawintensities = rawintensities[!grepl('count',colnames(rawintensities))]
-  #rawintensities = intensities[grepl('corrected',colnames(intensities))]
+  
   if(exp=="None"){
     intensitiesK=rawintensities
   }else{
@@ -46,11 +46,7 @@ if (PTM == "P"){
   #remove blanks
   metadata3 = rep(metadataorg$name,each=3)
   intensitiesK = intensitiesK[,!grepl('blank',metadata3,ignore.case=TRUE)]
-  #splitnames = strsplit(colnames(intensitiesK),'NLB')
-  #splitnames = unlist(splitnames)
-  #splitnames2 = strsplit(splitnames[seq(2,924,by=2)],"___")
-  #splitnames2 = unlist(splitnames2)
-  #intensitiesK = intensitiesK[,order(strtoi(splitnames2[seq(1,923,by=2)]))]
+
   
   message("Separating multiplicities...")
   #first we need to make a new table where we 1) take only the columns we need and 2) separate peptides by multiplicity
@@ -128,7 +124,7 @@ if (PTM == "P"){
   intensities <- data[,grepl('Reporter.intensity',colnames(data))]
   rawintensities <- intensities[!grepl('corrected',colnames(intensities))]
   rawintensities <- rawintensities[!grepl('count',colnames(rawintensities))]
-  #rawintensities <- intensities[grepl('corrected',colnames(intensities))]
+  
   if(exp=="None"){
     intensitiesK <- rawintensities
   }else{
@@ -137,11 +133,6 @@ if (PTM == "P"){
   #remove blanks
   metadata3 <- rep(metadataorg$name,each=3)
   intensitiesK <- intensitiesK[,!grepl('blank',metadata3,ignore.case=TRUE)]
-  #splitnames = strsplit(colnames(intensitiesK),'NLB')
-  #splitnames = unlist(splitnames)
-  #splitnames2 = strsplit(splitnames[seq(2,924,by=2)],"___")
-  #splitnames2 = unlist(splitnames2)
-  #intensitiesK = intensitiesK[,order(strtoi(splitnames2[seq(1,923,by=2)]))]
   
   message("Separating multiplicities...")
   #first we need to make a new table where we 1) take only the columns we need and 2) separate peptides by multiplicity
@@ -226,10 +217,7 @@ if (PTM == "P"){
   #remove blanks
   metadata3 = metadataorg$name
   intensitiesK = intensitiesK[,!grepl('blank',metadata3,ignore.case=TRUE)]
-  #intensitiesK = intensitiesK[,metadata$sample]
-  #splitnames = strsplit(colnames(intensitiesK),'NLB')
-  #splitnames = unlist(splitnames)
-  #intensitiesK = intensitiesK[,order(strtoi(splitnames[seq(2,308,by=2)]))]
+
   #get info for all proteins
   mydata = data.frame(data$Proteins,data$Majority.protein.IDs,data$Peptide.counts..all,
                       data$Peptide.counts..unique.,data$Fasta.headers,data$Number.of.proteins,data$Peptides,
@@ -239,7 +227,7 @@ if (PTM == "P"){
   colnames(mydata)=c("Proteins","Majority.protein.IDs","Peptide.counts.all","Peptide.counts.unique",
                      "Fasta.headers",
                      "Number.of.proteins","Peptides","Unique.peptides",'Sequence.coverage',
-                     'Unique.sequence.coverage','Sequence.lengths','Peptide.IDs','Evidence.IDs','id')
+                     'Unique.sequence.coverage','Sequence.lengths','Peptide.IDs','Evidence.IDs','original.id')
   newdata = data.frame(mydata,intensitiesK)
 }
 
@@ -261,41 +249,40 @@ newdatalog <- data.frame(newdata,log2(intensities+1),stringsAsFactors=FALSE)
 colnames(newdatalog) <- c(colnames(newdata),paste("log2(",metadata$name,"_",metadata$rep,")",sep=""))
 
 #save table
-newdatalog %>%
-  rownames_to_column(var = "UID") %>%
+newdatalog |>
+  rownames_to_column(var = "UID") |>
   write.csv(file = 'prenormalized_data.csv', row.names = FALSE)
 
 message("Removing proteins in less than 50% of the runs...")
-#now we can normalize the intensity data and do DE analysis with PoissonSeq
-#first we need to get rid of proteins that are not expressed in at least half of the runs
-#to do this we can just pull the first lanes from all the samples as those are the reference lanes
-#if there are no references, we need to impute them
+
+#we need to get rid of proteins that are not expressed in at least half of the runs
+#to do this we can just pull the reference lanes from all the runs and weed out those with 50% missing (0) intensity value
+#if there are no references, we need to impute them using the protein mean intensity
+
 if (numrefs==0){
   refs = rowMeans(intensities)
-} else{
+  } else {
   refs = newdata[,grepl('Ref',colnames(newdata),ignore.case=TRUE)]
-}
-if (numrefs>1){
-  for (i in 1:runs){
-      if (i==1){
-        refsums <- data.frame(rowSums(as.data.frame(refs[,(numrefs*(i-1)+1):(numrefs*i)],
-                                                    row.names = row.names(refs))))
-      }else{
-        refsums <- data.frame(refsums,rowSums(as.data.frame(refs[,(numrefs*(i-1)+1):(numrefs*i)],
-                                                            row.names = row.names(refs))))
+  }
+
+if (numrefs>1) {
+  for (i in 1:numrefs) {
+    if (i==1) {
+      refsums = data.frame(rowSums(refs[,(numrefs*(i-1)+1):(numrefs*i)]))
+      } else {
+      refsums = data.frame(refsums,rowSums(refs[,(numrefs*(i-1)+1):(numrefs*i)]))
       }
     }
-    #count how many times the protein is zero in the reference lane
-    #remove the proteins that are zero in >=50% of the runs
-    nozeros = newdata[zerosums<=(dim(refsums)[2]/2),]
-    #Will use only sites detected in both runs
-    nozeros <- newdata[zerosums==0,]
-} else if (numrefs==1){
+  #count how many times the protein is zero in the reference lane
+  zerosums = rowSums(refsums[,]==0)
+  #remove the proteins that are zero in >=50-1% of the runs
+  nozeros = newdata[zerosums <= (floor(dim(refsums)[2]/2-1)),]
+  } else if (numrefs==1) {
   #remove the proteins that are zero in all samples
   nozeros <- newdata[rowSums(refs==0)==0,]
   } else {
   nozeros <- newdata[refs!=0,]
-    }
+  }
 #save
 nozeros %>%
   rownames_to_column(var = "UID") %>%
@@ -394,43 +381,7 @@ if (runs>1){
   }
   write.csv(normintensitiesIRS,'IRS_normalized_values.csv')
   finalimpintensitiesIRS=normintensitiesIRS
-  # if (numrefs==0){
-  #   refs = rowMeans(normintensitiesimpall)
-  # } else{
-  #   refs = as.matrix(normintensitiesimpall[,grepl('Ref',colnames(normintensitiesimpall),ignore.case=TRUE)])
-  # }
-  # if (numrefs>1){
-  #   for (i in 1:reps){
-  #     if (i==1){
-  #       refscomb = data.frame(rowMeans(refs[,(numrefs*(i-1)+1):(numrefs*i)]))
-  #     }else{
-  #       refscomb = data.frame(refscomb,rowMeans(refs[,(numrefs*(i-1)+1):(numrefs*i)]))
-  #     }
-  #     irsaverage <- apply(refscomb, 1, function(x) exp(mean(log(x))))
-  #     normfactorref = irsaverage/refscomb
-  #   }
-  # }else{
-  #   refscomb=refs
-  #   
-  # }
-  # irsaverage <- apply(refscomb, 1, function(x) exp(mean(log(x))))
-  # normfactorref = irsaverage/refscomb
-  #   for (i in 1:reps){
-  #     #get intensity values for this run
-  #     myints = normintensitiesimpall[,(1+(i-1)*plex):(i*plex)]
-  #     mynormfactorref = normfactorref[,i]
-  #     #row normalize each protein against the reference
-  #     for (j in 1:dim(myints)[2]){
-  #       myints[,j] = ceiling(myints[,j]*mynormfactorref)
-  #     }
-  #     #make a table of normalized intensities
-  #     if (i==1){
-  #       finalimpintensitiesIRS = myints
-  #     }else{
-  #       finalimpintensitiesIRS = data.frame(finalimpintensitiesIRS,myints)
-  #     }
-  #   }
-  # write.csv(finalimpintensitiesIRS,'IRS_normalized_values.csv')
+  
   metadata %>%
     filter(!grepl(pattern = "Ref", x = .[]$name), .preserve = TRUE) -> metadata
 }else{
@@ -502,27 +453,17 @@ if(DE=="Yes"){
   newwb2 <- createWorkbook()
   for (i in 1:dim(comps)[1]){
     #get the intensities for this comparison
-#    sepcomps = strsplit(comps[i,1],"_vs_")
     pseqdata |>
       select(matches(comps[i,1]),matches(comps[i,2])) |>
       na.omit() -> pdata
-#    intensities1 = pseqdata[,grepl(comps[i,1],colnames(pseqdata))]
-#    intensities2 = pseqdata[,grepl(comps[i,2],colnames(pseqdata))]
-    #intensities1 = na.omit(intensities1)
-    #intensities2 = na.omit(intensities2)
 
     #make indicator variable y
     y <- c(rep(1,ncol(pdata|>select(matches(comps[i,1])))),
              rep(2,ncol(pdata|>select(matches(comps[i,2])))))
     
     #perform PSeq
-#    pdata = data.frame(intensities1,intensities2)
-#    pdata = na.omit(pdata)
     pseq<-PS.Main(dat=list(n=pdata,y=y,type="twoclass",pair=FALSE,gname=row.names(pdata)),para=list(ct.sum=0,ct.mean=0))
-    #get the actual fc
-#    pseq = pseq[order(pseq$gname),]
-#    pdata = pdata[order(row.names(pdata)),]
-    Sys.setenv(`_R_USE_PIPEBIND_` = TRUE)
+    
     # Let's create results table. Here, fold-change is calculated from previously normalized intensities.
     pseq |>
       select(2,4,5) |>
@@ -534,15 +475,7 @@ if(DE=="Yes"){
                    mutate(UID = rownames(pdata)), by = "UID") %>%
       mutate(log2FC = log2(rowMeans(across(starts_with(comps[i,2])))/rowMeans(across(starts_with(comps[i,1])))),
              GeneID = gsub(pattern = ";(.+)", replacement = "", x = .[]$Proteins, perl = T), .after = fdr) -> myresults
-      
-      
-#    pdata = pdata[row.names(pdata)%in%pseq$gname,]
-#    myFC = data.frame(rowMeans(pdata[,y==2])/rowMeans(pdata[,y==1]),row.names=row.names(pdata))
-#    pseq[,7]=log2(myFC)
-#    colnames(pseq)[7]="log2FC"
-#    pseqdata = pseqdata[order(row.names(pseqdata)),]
-#    nozeros = nozeros[order(row.names(nozeros)),]
-#    myresults = data.frame(pseq[,c(1:5,7)],nozeros[row.names(nozeros)%in%pseq$gname,1:dim(mydata)[2]],pseqdata[row.names(pseqdata)%in%pseq$gname,])
+    
     #save
     mycomp = paste0(comps[i,2],"_vs_",comps[i,1])
     if (nchar(mycomp)>31){
@@ -554,59 +487,114 @@ if(DE=="Yes"){
     writeDataTable(wb=newwb2, sheet=mysheet,x=myresults,tableStyle="none",
                    rowNames=FALSE,withFilter=FALSE,
                    bandedRows=FALSE,bandedCols=FALSE)
+    
+    #table formatting for MA and volcano plots
+    myresults %>%
+      mutate(mean_mock = rowMeans(select(pdata,matches(comps[i,1]))),
+             mean_treatment = rowMeans(select(pdata, matches(comps[i,2])))) -> myData
+    myData$DE <- "NS"
+    myData$DE[myData$pval<=qval & myData$log2FC < 0] <- "Down"
+    myData$DE[myData$pval<=qval & myData$log2FC > 0] <- "Up"
+    myData$DE <- factor(myData$DE, levels = c("Up", "Down", "NS"))
+    
+    #make MA plot
+    if (stat=="q"){
+      MA <- ggplot(myData,
+                   aes(x = log2(mean_mock*mean_treatment)*0.5,
+                       y = log2FC))+
+        geom_point(color=alpha('black', 0.3), shape=21, size=2, aes(fill=factor(DE))) +
+        scale_fill_manual(values=alpha(c('#FD6467','#56B4E9','#FDFD96'),0.8)) +
+        geom_hline(yintercept = 0, linetype = "dashed", color = alpha("black", 0.7), linewidth = 1)+
+        ggtitle(paste0(comps[i,2],"/",comps[i,1]," (",sum(pseq$fdr<qval)," DE elements)"))+
+        xlab(label = bquote("A (Average"~log[2]~"Intensity)"))+
+        ylab(label = bquote("M ("*log[2]~"Fold-change)"))+
+        labs(fill = element_blank())+
+        theme_classic()+
+        theme(axis.title.x = element_text(size =20),
+              axis.title.y = element_text(size =20),
+              legend.text = element_text(size=15),
+              axis.text.x= element_text(size=15),
+              axis.text.y= element_text(size=15))
+      
+      png(filename = paste0(comps[i,2],"_vs_",comps[i,1],"_MA_plot_",qval,".png"), width = 2500, height = 1500, res = 300)
+      plot(MA)
+      dev.off()
+      
+    } else {
+      
+      MA <- ggplot(myData,
+                   aes(x = log2(mean_mock*mean_treatment)*0.5,
+                       y = log2FC))+
+        geom_point(color=alpha('black', 0.3), shape=21, size=2, aes(fill=factor(DE))) +
+        scale_fill_manual(values=alpha(c('#FD6467','#56B4E9','#FDFD96'),0.8)) +
+        geom_hline(yintercept = 0, linetype = "dashed", color = alpha("black", 0.7), linewidth = 1)+
+        ggtitle(paste0(comps[i,2],"/",comps[i,1]," (",sum(pseq$pval<qval)," DE elements)"))+
+        xlab(label = bquote("A (Average"~log[2]~"Intensity)"))+
+        ylab(label = bquote("M ("*log[2]~"Fold-change)"))+
+        labs(fill = element_blank())+
+        theme_classic()+
+        theme(axis.title.x = element_text(size =20),
+              axis.title.y = element_text(size =20),
+              legend.text = element_text(size=15),
+              axis.text.x= element_text(size=15),
+              axis.text.y= element_text(size=15))
+      
+      png(filename = paste0(comps[i,2],"_vs_",comps[i,1],"_MA_plot_",qval,".png"), width = 2500, height = 1500, res = 300)
+      plot(MA)
+      dev.off()
+    }
     #make volcano plot
-    # signum = sum(pseq$pval<qval)
-    # if (stat=="q"){
-    #   png(filename=paste0(comps[i,2],"_vs_",comps[i,1],"_volcano_plot_",qval,".png"),width=2500,height=2000,res=300)
-    #   e <- EnhancedVolcano(toptable = myresults,
-    #                        lab = myresults$UID,
-    #                        x = 'log2FC',
-    #                        y = 'fdr',
-    #                        ylim=c(0,3),
-    #                        xlim=c(-3,3),
-    #                        pointSize=1,
-    #                        labSize=0,
-    #                        FCcutoff=log2(1.1),
-    #                        pCutoff=qval,
-    #                        title=paste0(comps[i,2]," / ",comps[i,1]," (",sum(pseq$fdr<qval)," DE elements)"),
-    #                        col=c('grey30','grey60','royalblue','red2'),
-    #                        legendLabels=c('FC<1.1, q>0.1','FC>1.1, q>0.1','FC<1.1, q<0.1','FC>1.1, q<0.1'),
-    #                        legendLabSize=10,
-    #                        ylab = bquote(~-Log[10]~italic(q-value)))
-    #   plot(e)
-    #   dev.off() 
-    # }else{
-    #   png(filename=paste0(comps[i,2],"_vs_",comps[i,1],"_volcano_plot_",qval,".png"),width=2500,height=2000,res=300)
-    #   e <- EnhancedVolcano(toptable = myresults,
-    #                        lab = 'UID',
-    #                        x = 'log2FC',
-    #                        y = 'pval',
-    #                        ylim=c(0,3),
-    #                        xlim=c(-3,3),
-    #                        pointSize=1,
-    #                        labSize=0,
-    #                        FCcutoff=log2(1.1),
-    #                        pCutoff=qval,
-    #                        title=paste0(comps[i,2]," / ",comps[i,1]," (",sum(pseq$pval<qval)," DE elements)"),
-    #                        col=c('grey30','grey60','royalblue','red2'),
-    #                        legendLabels=c('FC<1.1, p>0.05','FC>1.1, p>0.05','FC<1.1, p<0.05','FC>1.1, p<0.05'),
-    #                        legendLabSize=10,
-    #                        ylab = bquote(~-Log[10]~italic(p-value)))
-    #   plot(e)
-    #   dev.off()
-    # }
+    signum = sum(pseq$pval<qval)
+    if (stat=="q"){
+      volcanoPlot <- ggplot(myData, aes(x = log2FC, y = -log10(fdr)))+
+        geom_point(color='black', shape=21, size=2, alpha=0.7, aes(fill=factor(DE))) +
+        geom_vline(xintercept = 0, linetype = "dashed", color = "black", linewidth = 1, alpha = 0.7)+
+        scale_fill_manual(values=c('#FD6467','#56B4E9','#FDFD96' ))+
+        ggtitle(paste0(comps[i,2],"/",comps[i,1]," (",sum(pseq$fdr<qval)," DE elements)"))+
+        xlab(label = bquote(log[2]~"Fold-change"))+
+        ylab(label = bquote(-log[10]~"qvalue"))+
+        labs(fill = element_blank())+
+        ylim(0,3)+
+        xlim(-3,3)+
+        theme_classic()+
+        theme(legend.position = "top")
+      
+      png(filename=paste0(comps[i,2],"_vs_",comps[i,1],"_volcano_plot_",qval,".png"),width=2500,height=2000,res=300)
+      print(volcanoPlot)
+      dev.off()
+      
+    }else{
+      
+      volcanoPlot <- ggplot(myData, aes(x = log2FC, y = -log10(pval)))+
+        geom_point(color='black', shape=21, size=2, alpha=0.7, aes(fill=factor(DE))) +
+        geom_vline(xintercept = 0, linetype = "dashed", color = "black", linewidth = 1, alpha = 0.7)+
+        scale_fill_manual(values=c('#FD6467','#56B4E9','#FDFD96' ))+
+        ggtitle(paste0(comps[i,2],"/",comps[i,1]," (",sum(pseq$pval<qval)," DE elements)"))+
+        xlab(label = bquote(log[2]~"Fold-change"))+
+        ylab(label = bquote(-log[10]~"pvalue"))+
+        labs(fill = element_blank())+
+        ylim(0,3)+
+        xlim(-3,3)+
+        theme_classic()+
+        theme(legend.position = "top")
+  
+      png(filename=paste0(comps[i,2],"_vs_",comps[i,1],"_volcano_plot_",qval,".png"),width=2500,height=2000,res=300)
+      plot(volcanoPlot)
+      dev.off()
+    }
+    
     #make pvalue and qvalue histogram
-#    if (stat=="q"){
+
       png(filename=paste0(comps[i,2],"_vs_",comps[i,1],"_qval_hist.png"),width=2000,height=2000,res=300)
       h <- hist(x=pseq$fdr,breaks=100)
       plot(h,main="q-value distribution histogram", xlab="q-value")
       dev.off()
-#    }else{
+
       png(filename=paste0(comps[i,2],"_vs_",comps[i,1],"_pval_hist.png"),width=2000,height=2000,res=300)
       h <- hist(x=pseq$pval,breaks=100)
       plot(h,main="p-value distribution histogram",xlab="p-value")
       dev.off()
-#    }
+
     #get differentially expressed genes and save
     if (stat=="q"){
       myresults %>%
@@ -615,8 +603,7 @@ if(DE=="Yes"){
       myresults %>%
         filter(pval<qval, .preserve = TRUE) -> mypros
     }
-#    mypros = mypros[order(mypros$gname),]
-#    myresults = data.frame(mypros,nozeros[row.names(nozeros)%in%mypros$gname,1:dim(mydata)[2]],pseqdata[row.names(pseqdata)%in%mypros$gname,])
+
     #save
     addWorksheet(wb = newwb, sheetName = mysheet, gridLines = TRUE)
     writeDataTable(wb=newwb, sheet=mysheet,x=mypros,tableStyle="none",
