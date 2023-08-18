@@ -266,7 +266,7 @@ if (numrefs==0){
   }
 
 if (numrefs>1) {
-  for (i in 1:numrefs) {
+  for (i in 1:runs) {
     if (i==1) {
       refsums = data.frame(rowSums(refs[,(numrefs*(i-1)+1):(numrefs*i)]))
       } else {
