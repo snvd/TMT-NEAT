@@ -492,13 +492,16 @@ if(DE=="Yes"){
     myresults %>%
       mutate(mean_mock = rowMeans(select(pdata,matches(comps[i,1]))),
              mean_treatment = rowMeans(select(pdata, matches(comps[i,2])))) -> myData
-    myData$DE <- "NS"
-    myData$DE[myData$pval<=qval & myData$log2FC < 0] <- "Down"
-    myData$DE[myData$pval<=qval & myData$log2FC > 0] <- "Up"
-    myData$DE <- factor(myData$DE, levels = c("Up", "Down", "NS"))
     
-    #make MA plot
-    if (stat=="q"){
+    # Let's now make pretty plots!
+    if (stat=="q"){ # if we are using qvalue as cutoff stat
+      
+      myData$DE <- "NS"
+      myData$DE[myData$fdr<=qval & myData$log2FC < 0] <- "Down"
+      myData$DE[myData$fdr<=qval & myData$log2FC > 0] <- "Up"
+      myData$DE <- factor(myData$DE, levels = c("Up", "Down", "NS"))
+      
+      #make MA plot
       MA <- ggplot(myData,
                    aes(x = log2(mean_mock*mean_treatment)*0.5,
                        y = log2FC))+
@@ -516,36 +519,7 @@ if(DE=="Yes"){
               axis.text.x= element_text(size=15),
               axis.text.y= element_text(size=15))
       
-      png(filename = paste0(comps[i,2],"_vs_",comps[i,1],"_MA_plot_",qval,".png"), width = 2500, height = 1500, res = 300)
-      plot(MA)
-      dev.off()
-      
-    } else {
-      
-      MA <- ggplot(myData,
-                   aes(x = log2(mean_mock*mean_treatment)*0.5,
-                       y = log2FC))+
-        geom_point(color=alpha('black', 0.3), shape=21, size=2, aes(fill=factor(DE))) +
-        scale_fill_manual(values=alpha(c('#FD6467','#56B4E9','#FDFD96'),0.8)) +
-        geom_hline(yintercept = 0, linetype = "dashed", color = alpha("black", 0.7), linewidth = 1)+
-        ggtitle(paste0(comps[i,2],"/",comps[i,1]," (",sum(pseq$pval<qval)," DE elements)"))+
-        xlab(label = bquote("A (Average"~log[2]~"Intensity)"))+
-        ylab(label = bquote("M ("*log[2]~"Fold-change)"))+
-        labs(fill = element_blank())+
-        theme_classic()+
-        theme(axis.title.x = element_text(size =20),
-              axis.title.y = element_text(size =20),
-              legend.text = element_text(size=15),
-              axis.text.x= element_text(size=15),
-              axis.text.y= element_text(size=15))
-      
-      png(filename = paste0(comps[i,2],"_vs_",comps[i,1],"_MA_plot_",qval,".png"), width = 2500, height = 1500, res = 300)
-      plot(MA)
-      dev.off()
-    }
-    #make volcano plot
-    signum = sum(pseq$pval<qval)
-    if (stat=="q"){
+      # Make volcano plot
       volcanoPlot <- ggplot(myData, aes(x = log2FC, y = -log10(fdr)))+
         geom_point(color='black', shape=21, size=2, alpha=0.7, aes(fill=factor(DE))) +
         geom_vline(xintercept = 0, linetype = "dashed", color = "black", linewidth = 1, alpha = 0.7)+
@@ -559,12 +533,41 @@ if(DE=="Yes"){
         theme_classic()+
         theme(legend.position = "top")
       
+      #export plots as PNG images
+      png(filename = paste0(comps[i,2],"_vs_",comps[i,1],"_MA_plot_",qval,".png"), width = 2500, height = 1500, res = 300)
+      plot(MA)
+      dev.off()
+      
       png(filename=paste0(comps[i,2],"_vs_",comps[i,1],"_volcano_plot_",qval,".png"),width=2500,height=2000,res=300)
       print(volcanoPlot)
       dev.off()
       
-    }else{
+    } else { # else use pvalue as cutoff stat
       
+      myData$DE <- "NS"
+      myData$DE[myData$pval<=qval & myData$log2FC < 0] <- "Down"
+      myData$DE[myData$pval<=qval & myData$log2FC > 0] <- "Up"
+      myData$DE <- factor(myData$DE, levels = c("Up", "Down", "NS"))
+      
+      #make MA plot
+      MA <- ggplot(myData,
+                   aes(x = log2(mean_mock*mean_treatment)*0.5,
+                       y = log2FC))+
+        geom_point(color=alpha('black', 0.3), shape=21, size=2, aes(fill=factor(DE))) +
+        scale_fill_manual(values=alpha(c('#FD6467','#56B4E9','#FDFD96'),0.8)) +
+        geom_hline(yintercept = 0, linetype = "dashed", color = alpha("black", 0.7), linewidth = 1)+
+        ggtitle(paste0(comps[i,2],"/",comps[i,1]," (",sum(pseq$pval<qval)," DE elements)"))+
+        xlab(label = bquote("A (Average"~log[2]~"Intensity)"))+
+        ylab(label = bquote("M ("*log[2]~"Fold-change)"))+
+        labs(fill = element_blank())+
+        theme_classic()+
+        theme(axis.title.x = element_text(size =20),
+              axis.title.y = element_text(size =20),
+              legend.text = element_text(size=15),
+              axis.text.x= element_text(size=15),
+              axis.text.y= element_text(size=15))
+      
+      #make volcano plot
       volcanoPlot <- ggplot(myData, aes(x = log2FC, y = -log10(pval)))+
         geom_point(color='black', shape=21, size=2, alpha=0.7, aes(fill=factor(DE))) +
         geom_vline(xintercept = 0, linetype = "dashed", color = "black", linewidth = 1, alpha = 0.7)+
@@ -577,12 +580,17 @@ if(DE=="Yes"){
         xlim(-3,3)+
         theme_classic()+
         theme(legend.position = "top")
-  
+      
+      #Export both plots as PNG images
+      png(filename = paste0(comps[i,2],"_vs_",comps[i,1],"_MA_plot_",qval,".png"), width = 2500, height = 1500, res = 300)
+      plot(MA)
+      dev.off()
+      
       png(filename=paste0(comps[i,2],"_vs_",comps[i,1],"_volcano_plot_",qval,".png"),width=2500,height=2000,res=300)
       plot(volcanoPlot)
       dev.off()
     }
-    
+
     #make pvalue and qvalue histogram
 
       png(filename=paste0(comps[i,2],"_vs_",comps[i,1],"_qval_hist.png"),width=2000,height=2000,res=300)
