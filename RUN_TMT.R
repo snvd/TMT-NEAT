@@ -23,14 +23,6 @@ if (!require("BiocManager", quietly = TRUE)) {
 BiocManager::install(update = TRUE, ask = FALSE)
 }
 
-#install EnhancedVolcano from Bioconductor if needed
-if (!require('EnhancedVolcano',quietly=T)) {
-  BiocManager::install("EnhancedVolcano", update = FALSE)
-  library('EnhancedVolcano')
-}else{
-  library('EnhancedVolcano')
-}
-
 #install PoissonSeq from Github if needed
 if (!require('PoissonSeq',quietly=T)) {
   devtools::install_github("cran/PoissonSeq", upgrade = "never")
