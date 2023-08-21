@@ -390,11 +390,13 @@ if (runs>1){
 
 #QC plots
 # Normalized intensity box plot
-colors = c("blue","green","orange","yellow","red","purple","white","blue","green","orange","yellow","red","purple","white")
-png(filename='boxplot_log2_norm.png',width=5000,height=2000,res=300)
-invisible(b <- boxplot(log2(finalimpintensitiesIRS+1),col=colors[unlist(lapply(1:runs,function(x) rep(x,plex)))],ylab="log2(Intensity)",cex.axis=0.75,las=2))
-print(b)
-dev.off()
+if (SLN == "yes") {
+  colors = c("blue","green","orange","yellow","red","purple","white","blue","green","orange","yellow","red","purple","white")
+  png(filename='boxplot_log2_norm.png',width=5000,height=2000,res=300)
+  invisible(b <- boxplot(log2(finalimpintensitiesIRS+1),col=colors[unlist(lapply(1:runs,function(x) rep(x,plex)))],ylab="log2(Intensity)",cex.axis=0.75,las=2))
+  print(b)
+  dev.off()
+}
 
 #pca
 if (numrefs>0){
@@ -479,7 +481,7 @@ if(DE=="Yes"){
     #save
     mycomp = paste0(comps[i,2],"_vs_",comps[i,1])
     if (nchar(mycomp)>31){
-      mysheet = paste0(abbreviate(comps[i,2],minlength=15),"_vs_",abbreviate(comps[i,1],minlength=15))
+      mysheet = paste0(abbreviate(comps[i,2],minlength=13),"_vs_",abbreviate(comps[i,1],minlength=13))
     }else{
       mysheet=paste0(comps[i,2],"_vs_",comps[i,1])
     }
