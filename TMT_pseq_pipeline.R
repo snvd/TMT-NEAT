@@ -390,7 +390,7 @@ if (runs>1){
 
 #QC plots
 # Normalized intensity box plot
-if (SLN == "yes") {
+if (SLN == "Yes") {
   colors = c("blue","green","orange","yellow","red","purple","white","blue","green","orange","yellow","red","purple","white")
   png(filename='boxplot_log2_norm.png',width=5000,height=2000,res=300)
   invisible(b <- boxplot(log2(finalimpintensitiesIRS+1),col=colors[unlist(lapply(1:runs,function(x) rep(x,plex)))],ylab="log2(Intensity)",cex.axis=0.75,las=2))
@@ -492,8 +492,8 @@ if(DE=="Yes"){
     
     #table formatting for MA and volcano plots
     myresults %>%
-      mutate(mean_mock = rowMeans(select(pdata,matches(comps[i,1]))),
-             mean_treatment = rowMeans(select(pdata, matches(comps[i,2])))) -> myData
+      mutate(mean_mock = rowMeans(select(myresults,matches(comps[i,1]))),
+             mean_treatment = rowMeans(select(myresults, matches(comps[i,2])))) -> myData
     
     # Let's now make pretty plots!
     if (stat=="q"){ # if we are using qvalue as cutoff stat
