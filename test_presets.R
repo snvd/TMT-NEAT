@@ -10,3 +10,4 @@ DE <- "yes"
 stat <- "q"
 qval <- 0.1
 compsfile <- "comps.xlsx"
+annot <- "None"

@@ -90,7 +90,8 @@ ui <- fluidPage(
                sidebarPanel(radioButtons("radioStat", label = "DE statistical analysis method",
                                          choices = c("pseq","t-test","limma"),selected = "pseq"),
                             selectInput("GeneAnnotation", label = "Select species for gene annotation",
-                                        choices = c("Arabidopsis thaliana - TAIR", "Zea mays - B73 V5", "User provided")),
+                                        choices = c("Arabidopsis thaliana - TAIR", "Zea mays - B73 V5", "User provided", "None"),
+                                        selected = "None"),
                             fileInput("annotFile", label = "User provided gene annotation file"),
                             textInput("geneRegxp",label = "User provided GeneID matching regex"),
                             actionButton ('screenshot', HTML ('Screenshot this window'))
@@ -128,11 +129,31 @@ observeEvent(input$directory, ignoreNULL = TRUE,
     if (input$action > 0){
       if (!exists("path", mode = "character")) {
         path <- choose.dir(caption = "Choose output directory") 
-        TMT_pseq_pipeline(workdir=path,datafile=input$file2$datapath,metadatafile=input$file$datapath,
-                          exp=input$text2,REGEX=input$radioExp,SLN=input$radio3,PTM=input$radio,DE=input$radio4,stat=input$radio2,qval=input$num,compsfile=input$file3$datapath)
+        TMT_pseq_pipeline(workdir=path,
+                          datafile=input$file2$datapath,
+                          metadatafile=input$file$datapath,
+                          exp=input$text2,
+                          REGEX=input$radioExp,
+                          SLN=input$radio3,
+                          PTM=input$radio,
+                          DE=input$radio4,
+                          stat=input$radio2,
+                          qval=input$num,
+                          compsfile=input$file3$datapath,
+                          annot=input$GeneAnnotation)
       } else {
-        TMT_pseq_pipeline(workdir=path,datafile=input$file2$datapath,metadatafile=input$file$datapath,
-                          exp=input$text2,REGEX=input$radioExp,SLN=input$radio3,PTM=input$radio,DE=input$radio4,stat=input$radio2,qval=input$num,compsfile=input$file3$datapath)
+        TMT_pseq_pipeline(workdir=path,
+                          datafile=input$file2$datapath,
+                          metadatafile=input$file$datapath,
+                          exp=input$text2,
+                          REGEX=input$radioExp,
+                          SLN=input$radio3,
+                          PTM=input$radio,
+                          DE=input$radio4,
+                          stat=input$radio2,
+                          qval=input$num,
+                          compsfile=input$file3$datapath,
+                          annot=input$GeneAnnotation)
       }
 
     }

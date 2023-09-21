@@ -1,13 +1,13 @@
 #Pipeline for SLN, zero imputation, and IRS on TMT data followed by DE analysis using PoissonSeq
 #Last updated: Jan 06, 2023 by CMS
 
-TMT_pseq_pipeline <- function(workdir, datafile, metadatafile, exp, REGEX, SLN, PTM, DE, stat, qval,compsfile){
+TMT_pseq_pipeline <- function(workdir, datafile, metadatafile, exp, REGEX, SLN, PTM, DE, stat, qval,compsfile, annot){
 
 #make sure the exp name is syntactically valid if not using REGEXP
 if(REGEX == "no") {
   exp <- make.names(exp)
 }
-
+TMT_NEAT_DIR <- getwd()
 print(paste0("Working directory: ", workdir))
 setwd(workdir)
 message("Loading data files...")
@@ -467,16 +467,35 @@ if(DE=="Yes"){
     pseq<-PS.Main(dat=list(n=pdata,y=y,type="twoclass",pair=FALSE,gname=row.names(pdata)),para=list(ct.sum=0,ct.mean=0))
     
     # Let's create results table. Here, fold-change is calculated from previously normalized intensities.
-    pseq |>
-      select(2,4,5) |>
-      rename(UID = gname) |>
-      inner_join(nozeros |>
-                   select(Proteins:original.id) |>
-                   rownames_to_column(var="UID"), by = "UID") |>
-      inner_join(pdata |>
-                   mutate(UID = rownames(pdata)), by = "UID") %>%
-      mutate(log2FC = log2(rowMeans(across(starts_with(comps[i,2])))/rowMeans(across(starts_with(comps[i,1])))),
-             GeneID = gsub(pattern = ";(.+)", replacement = "", x = .[]$Proteins, perl = T), .after = fdr) -> myresults
+    if (annot == "None") {
+      pseq |>
+        select(2,4,5) |>
+        rename(UID = gname) |>
+        inner_join(nozeros |>
+                     select(Proteins:original.id) |>
+                     rownames_to_column(var="UID"), by = "UID") |>
+        inner_join(pdata |>
+                     mutate(UID = rownames(pdata)), by = "UID") %>%
+        mutate(log2FC = log2(rowMeans(across(starts_with(comps[i,2])))/rowMeans(across(starts_with(comps[i,1])))),
+               GeneID = gsub(pattern = ";(.+)", replacement = "", x = .[]$Proteins, perl = T), .after = UID) -> myresults
+      
+    } else if (annot == "Arabidopsis thaliana - TAIR") {
+      
+      pseq |>
+        select(2,4,5) |>
+        rename(UID = gname) |>
+        inner_join(nozeros |>
+                     select(Proteins:original.id) |>
+                     rownames_to_column(var="UID"), by = "UID") |>
+        inner_join(pdata |>
+                     mutate(UID = rownames(pdata)), by = "UID") %>%
+        mutate(log2FC = log2(rowMeans(across(starts_with(comps[i,2])))/rowMeans(across(starts_with(comps[i,1])))),
+               GeneID = substr(.[]$Proteins,start = 1, stop = 9), .after = UID) |>
+        left_join(y = read.delim(file = paste0(TMT_NEAT_DIR,"/gene_annotations/ath.csv"),header = TRUE,sep = ",",stringsAsFactors = FALSE),
+                  by = c("GeneID" = "AGI")) %>%
+        select(1,2,3,26,27, 4:25) -> myresults
+    }
+    
     
     #save
     mycomp = paste0(comps[i,2],"_vs_",comps[i,1])
@@ -492,8 +511,8 @@ if(DE=="Yes"){
     
     #table formatting for MA and volcano plots
     myresults %>%
-      mutate(mean_mock = rowMeans(select(myresults,matches(comps[i,1]))),
-             mean_treatment = rowMeans(select(myresults, matches(comps[i,2])))) -> myData
+      mutate(mean_mock = rowMeans(select(myresults,starts_with(comps[i,1]))),
+             mean_treatment = rowMeans(select(myresults, starts_with(comps[i,2])))) -> myData
     
     # Let's now make pretty plots!
     if (stat=="q"){ # if we are using qvalue as cutoff stat
