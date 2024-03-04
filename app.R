@@ -18,6 +18,7 @@ ui <- fluidPage(
                             radioButtons("radio3", label = "Sample Loading Normalization?", choices = c("Yes","No")),
                             radioButtons("radio4", label= "Differential Expression?", choices = c("Yes","No")),
                             radioButtons('radio2',label="p- or q-value",choices = c('q','p')),
+                            radioButtons('radio5', label='Using TMT correction factors?',choices=c('Yes','No')),
                             numericInput("num", label = "cutoff", value = 0.1),
                             actionButton("action", label = "Run"),
                             actionButton ('screenshot', HTML ('Screenshot this window'))
@@ -140,7 +141,8 @@ observeEvent(input$directory, ignoreNULL = TRUE,
                           stat=input$radio2,
                           qval=input$num,
                           compsfile=input$file3$datapath,
-                          annot=input$GeneAnnotation)
+                          annot=input$GeneAnnotation,
+                          CF=input$radio5)
       } else {
         TMT_pseq_pipeline(workdir=path,
                           datafile=input$file2$datapath,
@@ -153,7 +155,8 @@ observeEvent(input$directory, ignoreNULL = TRUE,
                           stat=input$radio2,
                           qval=input$num,
                           compsfile=input$file3$datapath,
-                          annot=input$GeneAnnotation)
+                          annot=input$GeneAnnotation,
+                          CF=input$radio5)
       }
 
     }

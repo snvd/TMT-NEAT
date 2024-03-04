@@ -1,7 +1,7 @@
 #Pipeline for SLN, zero imputation, and IRS on TMT data followed by DE analysis using PoissonSeq
 #Last updated: Jan 06, 2023 by CMS
 
-TMT_pseq_pipeline <- function(workdir, datafile, metadatafile, exp, REGEX, SLN, PTM, DE, stat, qval,compsfile, annot){
+TMT_pseq_pipeline <- function(workdir, datafile, metadatafile, exp, REGEX, SLN, PTM, DE, stat, qval,compsfile, annot, CF){
 
 #make sure the exp name is syntactically valid if not using REGEXP
 if(REGEX == "no") {
@@ -204,15 +204,15 @@ if (PTM == "P"){
     }
   }
 }else{
-  #get the raw intensities for differential abundance
-  intensities = data[,grepl('Reporter.intensity',colnames(data))]
-  rawintensities = intensities[!grepl('corrected',colnames(intensities))]
-  rawintensities = rawintensities[!grepl('count',colnames(rawintensities))]
-  intensitiesK = rawintensities[,grepl(exp,colnames(rawintensities))]
+  ##04Mar2024 - add option to use corrected intensities
+  if (CF == 'Yes'){
+  #get the corrected intensities for differential abundance
+  intensities = data[,grepl('Reporter.intensity.corrected',colnames(data))]
+  intensitiesK = intensities[,grepl(exp,colnames(intensities))]
   if(exp=="None"){
-    intensitiesK=rawintensities
+    intensitiesK=intensities
   }else{
-    intensitiesK = rawintensities[,grepl(exp,colnames(rawintensities))] 
+    intensitiesK = intensities[,grepl(exp,colnames(intensities))] 
   }
   #remove blanks
   metadata3 = metadataorg$name
@@ -229,18 +229,50 @@ if (PTM == "P"){
                      "Number.of.proteins","Peptides","Unique.peptides",'Sequence.coverage',
                      'Unique.sequence.coverage','Sequence.lengths','Peptide.IDs','Evidence.IDs','original.id')
   newdata = data.frame(mydata,intensitiesK)
+  }
+  else {
+    #get the raw intensities for differential abundance
+    intensities = data[,grepl('Reporter.intensity',colnames(data))]
+    rawintensities = intensities[!grepl('corrected',colnames(intensities))]
+    rawintensities = rawintensities[!grepl('count',colnames(rawintensities))]
+    intensitiesK = rawintensities[,grepl(exp,colnames(rawintensities))]
+    if(exp=="None"){
+      intensitiesK=rawintensities
+    }else{
+      intensitiesK = rawintensities[,grepl(exp,colnames(rawintensities))] 
+    }
+    #remove blanks
+    metadata3 = metadataorg$name
+    intensitiesK = intensitiesK[,!grepl('blank',metadata3,ignore.case=TRUE)]
+    
+    #get info for all proteins
+    mydata = data.frame(data$Proteins,data$Majority.protein.IDs,data$Peptide.counts..all,
+                        data$Peptide.counts..unique.,data$Fasta.headers,data$Number.of.proteins,data$Peptides,
+                        data$Unique.peptides, data$Sequence.coverage....,data$Unique.sequence.coverage....,
+                        data$Sequence.lengths, data$Peptide.IDs, data$Evidence.IDs,
+                        row.names(data), stringsAsFactors=FALSE)
+    colnames(mydata)=c("Proteins","Majority.protein.IDs","Peptide.counts.all","Peptide.counts.unique",
+                       "Fasta.headers",
+                       "Number.of.proteins","Peptides","Unique.peptides",'Sequence.coverage',
+                       'Unique.sequence.coverage','Sequence.lengths','Peptide.IDs','Evidence.IDs','original.id')
+    newdata = data.frame(mydata,intensitiesK)
+    
+  }
 }
 
 #replace column names with sample names from the metadata
 colnames(newdata)[(dim(mydata)[2]+1):dim(newdata)[2]] <- paste0(metadata$name,"_",metadata$rep)
 
 #get rid of all contaminants
+##04Mar2024 - also remove "Only identified by site"
 if (PTM=="P" | PTM=="U"){
   newdata <-  newdata[!grepl("CON",newdata$Protein,ignore.case=TRUE),]
   newdata <-  newdata[!grepl("REV",newdata$Protein, ignore.case=TRUE),]
+  newdata <-  newdata[!grepl("ONLY",newdata$Protein, ignore.case=TRUE),]
 }else{
   newdata <-  newdata[!grepl("CON",newdata$Majority.protein.IDs,ignore.case=TRUE),]
   newdata <-  newdata[!grepl("REV",newdata$Majority.protein.IDs, ignore.case=TRUE),]
+  newdata <-  newdata[!grepl("ONLY",newdata$Protein, ignore.case=TRUE),]
 }
 
 #finally add log2 transformed values because apparently people like those
